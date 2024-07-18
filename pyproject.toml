@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "pdf-extractor"
+version = "0.1.0"
+description = ""
+authors = ["Natan F. dos Santos"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pdf2image = "^1.17.0"
+opencv-python = "^4.10.0.84"
+pytesseract = "^0.3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
