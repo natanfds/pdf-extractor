@@ -44,7 +44,7 @@ for i, image in enumerate(images):
     rects = [cv2.boundingRect(contorno) for contorno in contornos if cv2.contourArea(contorno) > 100]
 
     # Remover retângulos completamente contidos em outros
-    filtered_rects = [r for i, r in enumerate(rects) if not any(is_contained(r, r2) for j, r2 in enumerate(retangulos) if i != j)]
+    filtered_rects = [r for i, r in enumerate(rects) if not any(is_contained(r, r2) for j, r2 in enumerate(rects) if i != j)]
 
     counter = 0
     for x, y, w, h in filtered_rects:
