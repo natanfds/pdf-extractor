@@ -9,6 +9,20 @@ import numpy as np
 from itertools import chain
 from dotenv import load_dotenv
 from PIL import Image, ImageDraw
+import sys
+
+path_to_pdf=""
+# Verifica se algum argumento foi passado
+if len(sys.argv) > 1:
+    path_to_pdf = sys.argv[1]
+    print(f"File: {path_to_pdf}")
+else:
+    print("No file found")
+    exit(1)
+
+if(not os.path.exists(path_to_pdf)):
+    print(f"File {path_to_pdf} not found")
+    exit(1)
 
 load_dotenv()
 DEBUG_MODE = os.getenv('DEBUG', 0) == '1'
@@ -35,16 +49,20 @@ for i, image in enumerate(images):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     bw_map = cv2.Laplacian(gray_image, cv2.CV_64F)
     bw_map = cv2.convertScaleAbs(bw_map)
-    bw_map = cv2.GaussianBlur(bw_map, (15,15), 10)
+    bw_map = cv2.GaussianBlur(bw_map, (13,13), 10)
     bw_map = cv2.bitwise_not(bw_map)
     bw_map = cv2.inRange(bw_map, 20, 250)
     if(DEBUG_MODE):
         cv2.imwrite(f'output/page_{i}_bw_{img_id}.png', bw_map)
     # Encontrar contornos na imagem
-    contornos, _ = cv2.findContours(bw_map, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)
+    contours, _ = cv2.findContours(bw_map, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Coletar todos os retângulos
-    rects = [cv2.boundingRect(contorno) for contorno in contornos if cv2.contourArea(contorno) > 100]
+
+    def is_rect_valid(rect): 
+        _, _ , w, h = rect
+        return  w > 50 and h > 10
+    rects = [cv2.boundingRect(contour) for contour in contours if cv2.contourArea(contour) > 100]
+    rects = [rect for rect in rects if is_rect_valid(rect)]
 
     counter = 0
     output_data = []
