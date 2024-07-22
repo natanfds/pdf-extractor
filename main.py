@@ -38,9 +38,10 @@ for i, image in enumerate(images):
     bw_map = cv2.GaussianBlur(bw_map, (15,15), 10)
     bw_map = cv2.bitwise_not(bw_map)
     bw_map = cv2.inRange(bw_map, 20, 250)
-
+    if(DEBUG_MODE):
+        cv2.imwrite(f'output/page_{i}_bw_{img_id}.png', bw_map)
     # Encontrar contornos na imagem
-    contornos, _ = cv2.findContours(bw_map, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contornos, _ = cv2.findContours(bw_map, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)
 
     # Coletar todos os retângulos
     rects = [cv2.boundingRect(contorno) for contorno in contornos if cv2.contourArea(contorno) > 100]
