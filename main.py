@@ -4,17 +4,14 @@ import os
 import cv2
 from uuid import uuid4
 import pytesseract
-import re
 from sklearn.cluster import DBSCAN
 import numpy as np
 from itertools import chain
+from dotenv import load_dotenv
+from PIL import Image, ImageDraw
 
-# Função para verificar se um retângulo está contido em outro
-def is_contained(ret1, ret2):
-    x1, y1, w1, h1 = ret1
-    x2, y2, w2, h2 = ret2
-    return x1 >= x2 and y1 >= y2 and x1 + w1 <= x2 + w2 and y1 + h1 <= y2 + h2
-  
+load_dotenv()
+DEBUG_MODE = os.getenv('DEBUG', 0) == '1'
 
 # Definir o caminho do arquivo PDF
 pdf_path = './arquivo.pdf'
@@ -27,7 +24,7 @@ saved_images = []
 for i, image in enumerate(images):
   with tempfile.TemporaryDirectory() as tmp:
     img_id = uuid4()
-    image_path = os.path.join(tmp, f'imagem_{i}_{img_id}.png')
+    image_path = os.path.join(tmp, f'imagem_{i}_{img_id}.png') if not DEBUG_MODE else f'output/page_{i}_{img_id}.png'
     print(f'Salvando imagem {image_path}')
     image.save(image_path, 'PNG')
     saved_images.append(image_path)
@@ -48,17 +45,22 @@ for i, image in enumerate(images):
     # Coletar todos os retângulos
     rects = [cv2.boundingRect(contorno) for contorno in contornos if cv2.contourArea(contorno) > 100]
 
-    # Remover retângulos completamente contidos em outros
-    filtered_rects = [r for i, r in enumerate(rects) if not any(is_contained(r, r2) for j, r2 in enumerate(rects) if i != j)]
-
     counter = 0
     output_data = []
-    for x, y, w, h in filtered_rects:
+    
+    rect_coords = [[x,y, x+w, y+h] for x, y, w, h in rects]
+    image_pil = Image.open(image_path)
+    image_draw = ImageDraw.Draw(image_pil, 'RGBA')
+    for coords in rect_coords:
+
+        image_draw.rectangle(coords, outline='red')
+    
+    image_pil.save(f'output/page_{i}_debug_rects_{img_id}.png')
+    
+    # Extrair texto de cada retângulo
+    for x, y, w, h in rects:
         rect = image[y:y+h, x:x+w]
-        file_name = f'out/rect_{img_id}_{counter}.png'
         counter += 1
-        
-        
         extracted_text = pytesseract.image_to_string(rect)
         print(f'Encontrado texto válido: {extracted_text}')
         coords = (x, y, w, h)
@@ -72,7 +74,7 @@ for i, image in enumerate(images):
     if(len(output_data) == 0):
       continue
     
-    # ordenar colunas
+    # ordenar colunas horizontal e verticalmente
     all_x_values = sorted([data['coords'][0] for data in output_data])
     all_x_values = np.array(all_x_values).reshape(-1, 1)
     dbscan = DBSCAN(eps=5, min_samples=2).fit(all_x_values)
@@ -111,5 +113,5 @@ for i, image in enumerate(images):
     
     data = [e['text'] for e in pre_sorted_data]
     data = '\n\n-----------------\n\n'.join(data)
-    with open(f'out/page_{i}.txt', 'w') as f:
+    with open(f'output/page_{i}.txt', 'w') as f:
         f.write(data)
